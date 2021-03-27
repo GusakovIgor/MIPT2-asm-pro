@@ -15,9 +15,8 @@ main:
 			syscall
 
 
-
-
-
 section .data
 
-FormatTest:		db "Your number is %s", 0x0a, 0x00
+FormatTest:	db "Your number is %s", 0x00
+
+String:		db " my nuber!", 0x0a, 0x00

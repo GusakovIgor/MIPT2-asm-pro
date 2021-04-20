@@ -1,5 +1,7 @@
 ## This folder contains MPrintf - my version of printf from stdio.h
 
+This description is copy of my notion [paper](https://www.notion.so/Printf-e87e012efd874328a32bbd6919af804c)
+
 Before we start, we've got a few files here. What do they mean?
 
 - In MPrintf.s you can find realization of MPrintf function

@@ -1,0 +1,264 @@
+Turbo Assembler	 Version 4.1	    03/09/21 14:51:41	    Page 1
+main.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3
+      4				     org 100h
+      5
+      6
+      7				     ; Constants ===========================
+      8
+      9	      =0005		     BASE_NAME_SIZE equ	5
+     10	      =0014		     MAX_INP_LEN equ 20
+     11	      =0013		     MAX_NUM_LEN equ 19	     ; Maximum is needed for binary number. 16 is for number, 1	is for length
+     12							     ;							      1	for 'b'	or  +
+     13				     'o' or 'h'
+     14							     ;							      1	for '$'
+     15
+     16	      =000A		     x1	= 10
+     17	      =0046		     x2	= 70
+     18
+     19	      =000A		     y1	= 10
+     20	      =0014		     y2	= 20
+     21
+     22	      =0654		     lu_coord =	(80 * y1 + x1) * 2
+     23	      =0C94		     ld_coord =	(80 * y2 + x1) * 2
+     24	      =06CC		     ru_coord =	(80 * y1 + x2) * 2
+     25	      =0D0C		     rd_coord =	(80 * y2 + x2) * 2
+     26
+     27
+     28	      =B800		     videomem =	0b800h
+     29
+     30	      =00BA		     vert_side	= 0bah	     ; vertical	side
+     31	      =00CD		     horiz_side	= 0cdh	     ; horizontal side
+     32
+     33	      =00C9		     lu_corn = 0c9h  ; left-up
+     34	      =00C8		     ld_corn = 0c8h  ; left-down
+     35	      =00BB		     ru_corn = 0bbh  ; right-up
+     36	      =00BC		     rd_corn = 0bch  ; right-down
+     37
+     38	      =0020		     space = 20h     ; free space
+     39
+     40	      =00B0		     shadow_30 = 0b0h	     ; 30 %
+     41	      =00B1		     shadow_50 = 0b1h	     ; 50 %
+     42	      =00B2		     shadow_70 = 0b2h	     ; 70 %
+     43
+     44				     ;======================================
+     45
+     46
+     47				     ; Global Funcs ========================
+     48
+     49				     ;extrn DrawFrame	     :proc
+     50				     ;extrn GetString	     :proc
+     51				     ;extrn ReadNumber	     :proc
+     52				     ;extrn NumberProcessing :proc
+     53
+     54				     ;======================================
+     55
+     56	0100			     Start:  ;call DrawFrame	      ;	Drawing	a frame
+     57	0100  E8 FFFD			     call GetString
+Turbo Assembler	 Version 4.1	    03/09/21 14:51:41	    Page 2
+main.asm
+
+
+
+     58	0103  E8 0008			     call ReadNumber	     ; input in	dx
+     59
+     60	0106  50			     push ax
+     61	0107  BB 0002			     mov bx, 2			     ; Base of system number to	convert
+     62	010A  BF 0AD2			     mov di, (80*17 + 25) * 2	     ; Offest of message in VideoMemory
+     63	010D  E8 FEF0			     call NumberProcessing
+**Error** main.asm(62) Undefined symbol: NUMBERPROCESSING
+     64	0110  58			     pop ax
+     65
+     66	0111  50			     push ax
+     67	0112  BB 0008			     mov bx, 8			     ; Base of system number to	convert
+     68	0115  BF 0B72			     mov di, (80*18 + 25) * 2		     ; Offest of message in VideoMemory
+     69	0118  E8 FEE5			     call NumberProcessing
+**Error** main.asm(68) Undefined symbol: NUMBERPROCESSING
+     70	011B  58			     pop ax
+     71
+     72	011C  50			     push ax
+     73	011D  BB 0010			     mov bx, 16			     ; Base of system number to	convert
+     74	0120  BF 0C12			     mov di, (80*19 + 25) * 2	     ; Offest of message in VideoMemory
+     75	0123  E8 FEDA			     call NumberProcessing
+**Error** main.asm(74) Undefined symbol: NUMBERPROCESSING
+     76
+     77	0126  B8 4C00			     mov ax, 4c00h
+     78	0129  CD 21			     int 21h
+     79
+     80
+     81
+     82					     include numproc.asm
+1    83	012B			     .model tiny
+1    84	012B			     .code
+1    85				     org 100h
+1    86
+1    87				     ; Constants ===========================
+1    88
+1    89	      =0005		     BASE_NAME_SIZE equ	5
+1    90	      =0014		     MAX_INP_LEN equ 20
+1    91
+1    92				     ;======================================
+1    93
+1    94
+1    95
+1    96	0100			     Start:
+1    97					     ;==================================================================
+1    98					     ; Requires: Input buffer with constant size MAX_INP_LEN (up to 254)
+1    99					     ;
+1   100					     ; Returns:	 Char buffer with beginnig at si + 1, with it's
+1   101					     ;		 length	in [si]
+1   102					     ;
+1   103					     ; Damages:	 ah, si, dx
+1   104					     ;==================================================================
+1   105					     global GetString
+*Warning* numproc.asm(23) Global type doesn't match symbol type: GETSTRING
+1   106	0100				     GetString proc
+1   107
+1   108	0100  B4 0A				     mov ah, 0ah
+1   109	0102  BA 0137r				     mov dx, offset Input
+1   110	0105  8B F2				     mov si, dx
+Turbo Assembler	 Version 4.1	    03/09/21 14:51:41	    Page 3
+main.asm
+
+
+
+1   111	0107  C6 04 14				     mov byte ptr [si],	MAX_INP_LEN
+1   112
+1   113	010A  CD 21				     int 21h
+1   114	010C  46				     inc si
+1   115	010D  C3			     ret
+1   116	010E				     endp
+1   117
+1   118
+1   119
+1   120					     ;==================================================================
+1   121					     ; Requires: pointer on buffer in si (where	si + 1 - beginning of the string
+1   122					     ;					   and [si]    - length	of string)
+1   123					     ;
+1   124					     ; Returns:	 number	from the buffer	in ax
+1   125					     ;
+1   126					     ; Damages:	 ax, bx, cx, dx
+1   127					     ;==================================================================
+1   128					     global ReadNumber
+*Warning* numproc.asm(46) Global type doesn't match symbol type: READNUMBER
+1   129	010E				     ReadNumber	proc
+1   130
+1   131	010E  33 C0				     xor ax, ax
+1   132	0110  33 C9				     xor cx, cx
+1   133	0112  33 FF				     xor di, di
+1   134
+1   135	0114  8A 0C				     mov cl, [si]
+1   136	0116  8B D1				     mov dx, cx	     ; Сохраняем количество цифр
+1   137	0118  46				     inc si	     ; Переходим к буфферу
+1   138	0119  FC				     cld
+1   139
+1   140	011A  80 2C 30			 store_nums: sub byte ptr [si],	'0'
+1   141	011D  AC				     lodsb
+1   142	011E  50				     push ax	     ; Пушим каждую цифру в стек
+1   143	011F  E2 F9				     loop store_nums
+1   144
+1   145	0121  8B CA				     mov cx, dx	     ; Возвращаем в cx кол-во цифр
+1   146	0123  BB 0001				     mov bx, 1	     ; Множитель для первой цифры
+1   147
+1   148	0126  58		       count_number: pop ax	     ; Считываем новую цифру из	стека
+1   149
+1   150	0127  F7 E3				     mul bx	     ; Умножаем	цифру на степень 10
+1   151	0129  03 F8				     add di, ax	     ; Прибавляем произведение к сохранённой сумме (будущему числу)
+1   152
+1   153	012B  B8 000A				     mov ax, 10	     ; Умножаем	bx на 10
+1   154	012E  F7 E3				     mul bx
+1   155	0130  8B D8				     mov bx, ax
+1   156
+1   157	0132  E2 F2				     loop count_number
+1   158
+1   159
+1   160	0134  8B C7			       quit: mov ax, di
+1   161
+1   162	0136  C3			     ret
+1   163	0137				     endp
+1   164
+1   165
+1   166
+Turbo Assembler	 Version 4.1	    03/09/21 14:51:41	    Page 4
+main.asm
+
+
+
+1   167	0137  14*(??)		     Input:  db	MAX_INP_LEN dup	(?)
+1   168
+1   169				     end Start
+Turbo Assembler	 Version 4.1	    03/09/21 14:51:41	    Page 5
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/09/21"
+??FILENAME			  Text	 "main	  "
+??TIME				  Text	 "14:51:41"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 MAIN
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+BASE_NAME_SIZE			  Number 0005
+COUNT_NUMBER			  Near	 DGROUP:0126
+GETSTRING			  Near	 DGROUP:0100
+HORIZ_SIDE			  Number 00CD
+INPUT				  Near	 DGROUP:0137
+LD_COORD			  Number 0C94
+LD_CORN				  Number 00C8
+LU_COORD			  Number 0654
+LU_CORN				  Number 00C9
+MAX_INP_LEN			  Number 0014
+MAX_NUM_LEN			  Number 0013
+QUIT				  Near	 DGROUP:0134
+RD_COORD			  Number 0D0C
+RD_CORN				  Number 00BC
+READNUMBER			  Near	 DGROUP:010E
+RU_COORD			  Number 06CC
+RU_CORN				  Number 00BB
+SHADOW_30			  Number 00B0
+SHADOW_50			  Number 00B1
+SHADOW_70			  Number 00B2
+SPACE				  Number 0020
+START				  Near	 DGROUP:0100
+STORE_NUMS			  Near	 DGROUP:011A
+VERT_SIDE			  Number 00BA
+VIDEOMEM			  Number B800
+X1				  Number 000A
+X2				  Number 0046
+Y1				  Number 000A
+Y2				  Number 0014
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  014B Word	  Public  CODE
+Turbo Assembler	 Version 4.1	    03/09/21 14:51:41	    Page 6
+Error Summary
+
+
+
+**Error** main.asm(62) Undefined symbol: NUMBERPROCESSING
+**Error** main.asm(68) Undefined symbol: NUMBERPROCESSING
+**Error** main.asm(74) Undefined symbol: NUMBERPROCESSING
+*Warning* numproc.asm(23) Global type doesn't match symbol type: GETSTRING
+*Warning* numproc.asm(46) Global type doesn't match symbol type: READNUMBER
+

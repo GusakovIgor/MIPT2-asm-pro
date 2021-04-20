@@ -1,0 +1,655 @@
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 1
+frame.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3				     org 100h
+      4
+      5				     ; Constants ===========================
+      6
+      7	      =0005		     BASE_NAME_SIZE equ	5
+      8	      =0014		     MAX_INP_LEN equ 20
+      9	      =0013		     MAX_NUM_LEN equ 19	     ; Maximum is needed for binary number. 16 is for number, 1	is for length
+     10							     ;							      1	for 'b'	or  +
+     11				     'o' or 'h'
+     12							     ;							      1	for '$'
+     13
+     14	      =000A		     x1	= 10
+     15	      =0046		     x2	= 70
+     16
+     17	      =000A		     y1	= 10
+     18	      =0014		     y2	= 20
+     19
+     20	      =0654		     lu_coord =	(80 * y1 + x1) * 2
+     21	      =0C94		     ld_coord =	(80 * y2 + x1) * 2
+     22	      =06CC		     ru_coord =	(80 * y1 + x2) * 2
+     23	      =0D0C		     rd_coord =	(80 * y2 + x2) * 2
+     24
+     25
+     26	      =B800		     videomem =	0b800h
+     27
+     28	      =00BA		     vert_side	= 0bah	     ; vertical	side
+     29	      =00CD		     horiz_side	= 0cdh	     ; horizontal side
+     30
+     31	      =00C9		     lu_corn = 0c9h  ; left-up
+     32	      =00C8		     ld_corn = 0c8h  ; left-down
+     33	      =00BB		     ru_corn = 0bbh  ; right-up
+     34	      =00BC		     rd_corn = 0bch  ; right-down
+     35
+     36	      =0020		     space = 20h     ; free space
+     37
+     38	      =00B0		     shadow_30 = 0b0h	     ; 30 %
+     39	      =00B1		     shadow_50 = 0b1h	     ; 50 %
+     40	      =00B2		     shadow_70 = 0b2h	     ; 70 %
+     41
+     42				     ;======================================
+     43
+     44
+     45	0100  E8 0016		     Start:	     call GetString	     ; Reading a number
+     46
+     47	0103  B9 0002				     mov cx, 2
+     48	0106  E8 001E				     call NewLines	     ; Printing	2 new lines
+     49
+     50	0109  E8 002C				     call ReadNumber	     ; Converts	string into number
+     51
+     52	010C  50				     push ax
+     53	010D  E8 0113				     call DrawFrame	     ; Drawing a frame
+     54	0110  58				     pop ax
+     55
+     56	0111  E8 0058				     call NumberProcessing   ; Converts	number in other	number systems,	and print   +
+     57				     them in screen
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 2
+frame.asm
+
+
+
+     58
+     59
+     60	0114  B8 4C00			  terminate: mov ax, 4c00h
+     61	0117  CD 21				     int 21h
+     62
+     63
+     64
+     65
+     66					     ;==================================================================
+     67					     ; Requires: Input buffer with constant size MAX_INP_LEN (up to 254)
+     68					     ;
+     69					     ; Returns:	 Char buffer with beginnig at si + 1, with it's
+     70					     ;		 length	in [si]
+     71					     ;
+     72					     ; Damages:	 ah, si, dx
+     73					     ;==================================================================
+     74	0119				     GetString proc
+     75
+     76	0119  B4 0A				     mov ah, 0ah
+     77	011B  BA 027Br				     mov dx, offset Input
+     78	011E  8B F2				     mov si, dx
+     79	0120  C6 04 14				     mov byte ptr [si],	MAX_INP_LEN
+     80
+     81	0123  CD 21				     int 21h
+     82	0125  46				     inc si
+     83	0126  C3			     ret
+     84	0127				     endp
+     85
+     86
+     87
+     88					     ;==================================================================
+     89					     ; Requires: number	of lines to print in cx
+     90					     ;
+     91					     ; Returns:	 ----
+     92					     ;
+     93					     ; Damages:	ah, dl,	cx
+     94					     ;==================================================================
+     95	0127				     NewLines proc
+     96
+     97	0127  B4 02			     mark:   mov ah, 02h
+     98
+     99	0129  B2 0D				     mov dl, 0dh
+    100	012B  CD 21				     int 21h
+    101	012D  B2 0A				     mov dl, 0ah
+    102	012F  CD 21				     int 21h
+    103
+    104	0131  E2 F4				     loop mark
+    105	0133  C3			     ret
+    106	0134				     endp
+    107
+    108
+    109
+    110					     ;==================================================================
+    111					     ; Requires: number	of lines to print in cx
+    112					     ;
+    113					     ; Returns:	 ----
+    114					     ;
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 3
+frame.asm
+
+
+
+    115					     ; Damages:	ah, dl,	cx
+    116					     ;==================================================================
+    117	0134				     StrLen proc
+    118	0134  B9 0005				     mov cx, BASE_NAME_SIZE
+    119	0137  C3			     ret
+    120	0138				     endp
+    121
+    122
+    123
+    124					     ;==================================================================
+    125					     ; Requires: pointer on buffer in si (where	si + 1 - beginning of the string
+    126					     ;					   and [si]    - length	of string)
+    127					     ;
+    128					     ; Returns:	 number	from the buffer	in ax
+    129					     ;
+    130					     ; Damages:	 ax, bx, cx, dx
+    131					     ;==================================================================
+    132	0138				     ReadNumber	proc
+    133
+    134	0138  33 C0				     xor ax, ax
+    135	013A  33 C9				     xor cx, cx
+    136	013C  8A 0C				     mov cl, byte ptr [si]
+    137	013E  8B D1				     mov dx, cx	     ; Сохраняем количество цифр
+    138	0140  46				     inc si	     ; Переходим к буфферу
+    139
+    140	0141  80 2C 30			 store_nums: sub byte ptr [si],	'0'
+    141	0144  AC				     lodsb
+    142	0145  50				     push ax	     ; Пушим каждую цифру в стек
+    143	0146  E2 F9				     loop store_nums
+    144
+    145	0148  8B CA				     mov cx, dx	     ; Возвращаем в cx кол-во цифр
+    146	014A  BB 000A				     mov bx, 10	     ; Перескакиваем умножение на 1 первой цифры
+    147	014D  49				     dec cx
+    148	014E  5A				     pop dx
+    149
+    150	014F  0B C9				     or	cx, cx	     ; Если цифра была одна - выходим
+    151	0151  74 16				     jz	quit
+    152
+    153	0153  58		       count_number: pop ax	     ; Считываем новую цифру из	стека
+    154
+    155	0154  8B FA				     mov di, dx
+    156	0156  F7 E3				     mul bx	     ; Умножаем	цифру на степень 10
+    157	0158  8B D7				     mov dx, di
+    158	015A  03 D0				     add dx, ax	     ; Прибавляем произведение к сохранённой сумме (будущему числу)
+    159
+    160	015C  8B FA				     mov di, dx	     ; Умножаем	bx на 10
+    161	015E  B8 000A				     mov ax, 10
+    162	0161  F7 E3				     mul bx
+    163	0163  8B D7				     mov dx, di
+    164	0165  8B D8				     mov bx, ax
+    165
+    166	0167  E2 EA				     loop count_number
+    167
+    168
+    169	0169  8B C2			       quit: mov ax, dx
+    170
+    171	016B  C3			     ret
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 4
+frame.asm
+
+
+
+    172	016C				     endp
+    173
+    174
+    175
+    176					     ;==================================================================
+    177					     ; Requires: decimal number	(up to 65535) to convert in three number systems
+    178					     ;		 and print on screen in	ax
+    179					     ;
+    180					     ; Returns:	 pointer in si on the length of	number and beginning of	number in si + 1
+    181					     ;
+    182					     ; Notes:
+    183					     ;
+    184					     ; Damages:	 ----
+    185					     ;==================================================================
+    186	016C				     NumberProcessing proc
+    187
+    188	016C  BB 0002				     mov bx, 2		     ; Base of system number to	convert
+    189	016F  50				     push ax
+    190	0170  B4 1A				     mov ah, 1ah	     ; Colour of printed text
+    191	0172  BF 0654				     mov di, lu_coord	     ; Offset to left corner of	frame
+    192	0175  81 C7 00A2			     add di, 80*2 + 1*2	     ; Additional offset into frame
+    193	0179  E8 002D				     call WriteSystem
+    194	017C  58				     pop ax
+    195
+    196	017D  50				     push ax
+    197	017E  E8 0011				     call Convert	     ; Converting number in string in other number system
+    198	0181  03 FA				     add di, dx
+    199	0183  50 55 8B EC C7 46	02+		     push 0
+    200	      0000 5D
+    201	018D  E8 004B				     call PushToVideo	     ; Pushing converted string	in videomemory
+    202	0190  58				     pop ax
+    203
+    204					     ;	     mov bx, 8
+    205					     ;	     push ax
+    206					     ;	     call Convert
+    207					     ;	     mov ah, 1ah
+    208					     ;	     mov di, lu_coord
+    209					     ;	     add di, 80*2*2 + 1*2
+    210					     ;	     call WriteSystem
+    211					     ;	     add di, dx
+    212					     ;	     push 0
+    213					     ;	     call PushToVideo
+    214					     ;	     pop ax
+    215					     ;
+    216					      ;	      mov bx, 16
+    217					     ;	     call Convert
+    218					     ;	     mov ah, 1ah
+    219					     ;	     mov di, lu_coord
+    220					     ;	     add di, 80*3*2 + 1*2
+    221					     ;	     call WriteSystem
+    222					     ;	     add di, dx
+    223					     ;	     push 0
+    224					     ;	     call PushToVideo
+    225	0191  C3			     ret
+    226	0192				     endp
+    227
+    228
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 5
+frame.asm
+
+
+
+    229
+    230
+    231					     ;==================================================================
+    232					     ; Requires: decimal number	(up to 65535) to convert in ax,
+    233					     ;		 and base of new number	system in bx
+    234					     ;
+    235					     ; Returns:	 pointer in si on number in number system, which base was in bx
+    236					     ;		 and its length	in cx
+    237					     ;
+    238					     ; Notes:
+    239					     ;
+    240					     ; Damages:	 ax, bx, cx, dx, si
+    241					     ;==================================================================
+    242	0192				     Convert proc
+    243
+    244	0192  33 C9				     xor cx, cx
+    245	0194  33 D2				     xor dx, dx
+    246
+    247	0196  BE 028Fr				     mov si, offset Number
+    248
+    249	0199  F7 F3			 digit_proc: div bx
+    250
+    251	019B  E8 0056				     call NumInChar
+    252
+    253	019E  88 14				     mov [si], dl
+    254	01A0  46				     inc si
+    255	01A1  41				     inc cx
+    256	01A2  33 D2				     xor dx, dx
+    257
+    258	01A4  0B C0				     or	ax, ax
+    259	01A6  75 F1				     jnz digit_proc
+    260
+    261	01A8  C3			     ret
+    262	01A9				     endp
+    263
+    264
+    265
+    266					     ;==================================================================
+    267					     ; Requires: decimal number, base of number	system in bx (2, 8 or 16)
+    268					     ;
+    269					     ; Returns:	 ----
+    270					     ;
+    271					     ; Notes:	 Writes	number system name in bytes with adress	in si
+    272					     ;
+    273					     ; Damages:	 si, di
+    274					     ;==================================================================
+    275	01A9				     WriteSystem proc
+    276
+    277	01A9  83 FB 02				     cmp bx, 2
+    278	01AC  74 0A				     je	bin
+    279	01AE  83 FB 08				     cmp bx, 8
+    280	01B1  74 0B				     je	oct
+    281	01B3  83 FB 10				     cmp bx, 16
+    282	01B6  74 0C				     je	hex
+    283
+    284	01B8  BE 02A2r				bin: mov si, offset Base_bin
+    285	01BB  EB 0D 90				     jmp write_base
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 6
+frame.asm
+
+
+
+    286
+    287	01BE  BE 02A7r				oct: mov si, offset Base_oct
+    288	01C1  EB 07 90				     jmp write_base
+    289
+    290	01C4  BE 02ACr				hex: mov si, offset Base_hex
+    291	01C7  EB 01 90				     jmp write_base
+    292
+    293	01CA  E8 FF67			 write_base: call StrLen
+    294	01CD  50 55 8B EC C7 46	02+		     push 1
+    295	      0001 5D
+    296	01D7  E8 0001				     call PushToVideo
+    297	01DA  C3			     ret
+    298	01DB				     endp
+    299
+    300
+    301
+    302					     ;==================================================================
+    303					     ; Requires: buffer	in si, and buffer length in bx,	1/0 in stack (forward or backward   +
+    304				     reading)
+    305					     ;
+    306					     ; Returns:	 ----
+    307					     ;
+    308					     ; Notes:
+    309					     ;
+    310					     ; Damages:	 ax, cx, es, si, di
+    311					     ;==================================================================
+    312	01DB				     PushToVideo proc
+    313
+    314	01DB  BA B800				     mov dx, videomem
+    315	01DE  8E C2				     mov es, dx
+    316
+    317	01E0  5A				     pop dx
+    318	01E1  0B D2				     or	dx, dx
+    319	01E3  74 08				     jz	out_symb_back
+    320
+    321	01E5  FC		      out_symb_forw: cld
+    322	01E6  AC				     lodsb
+    323	01E7  AB				     stosw
+    324	01E8  E2 FB				     loop out_symb_forw
+    325
+    326	01EA  EB 07 90				     jmp stop_pushing
+    327
+    328	01ED  FD		      out_symb_back: std
+    329	01EE  AC				     lodsb
+    330	01EF  FC				     cld
+    331	01F0  AB				     stosw
+    332	01F1  E2 FA				     loop out_symb_back
+    333	01F3			       stop_pushing:
+    334
+    335	01F3  C3			     ret
+    336	01F4				     endp
+    337
+    338
+    339
+    340					     ;==================================================================
+    341					     ; Requires: decimal number	(up to 15) to convert in dx
+    342					     ;
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 7
+frame.asm
+
+
+
+    343					     ; Returns:	 symbol	(it's code) in dx, that	displays that number
+    344					     ;
+    345					     ; Notes:	 That is more universal, then using "add dx, '0'" in
+    346					     ;		 Bin and Octal converting, but it's longer by 5	operations
+    347					     ;
+    348					     ; Damages:	 ----
+    349					     ;==================================================================
+    350	01F4				     NumInChar proc
+    351	01F4  83 FA 0A				     cmp dx, 10
+    352	01F7  72 03				     jb	 easy
+    353	01F9  EB 07 90				     jmp hard
+    354
+    355	01FC  83 C2 30			     easy:   add dx, '0'
+    356	01FF  EB 07 90				     jmp return
+    357
+    358	0202  83 EA 0A			     hard:   sub dx, 10
+    359	0205  83 C2 41				     add dx, 'A'
+    360
+    361	0208				     return:
+    362
+    363	0208  C3			     ret
+    364	0209				     endp
+    365
+    366
+    367
+    368					     ;========================================
+    369					     ; Requires: defined x1, x2, y1, y2
+    370					     ;
+    371					     ; Returns:	 ----
+    372					     ;
+    373					     ; Damages:	 ax, bx, cx, es, di
+    374					     ;========================================
+    375	0209				     ClearFrame	proc
+    376	0209  BF 0654				     mov di, lu_coord	     ; Coordinates of start
+    377
+    378	020C  B4 10				     mov ah, 10h	     ; Black background
+    379	020E  B0 20				     mov al, 20h	     ; Space symbol
+    380
+    381	0210  B9 000A				     mov cx, y2	- y1
+    382
+    383	0213					     clear:
+    384	0213  8B D9					     mov bx, cx
+    385	0215  B9 003C					     mov cx, x2	- x1
+    386
+    387	0218						     clear_line:
+    388	0218  AB						     stosw	     ; mov es:[di], ax / inc di
+    389	0219  E2 FD						     loop clear_line
+    390
+    391	021B  83 C7 28					     add di, (80 - (x2 - x1)) *	2
+    392
+    393	021E  8B CB					     mov cx, bx
+    394	0220  E2 F1					     loop clear
+    395
+    396	0222  C3			     ret
+    397	0223				     endp
+    398
+    399
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 8
+frame.asm
+
+
+
+    400
+    401					     ;========================================
+    402					     ; Requires: defined x1, x2, y1, y2
+    403					     ;
+    404					     ; Returns:	 ----
+    405					     ;
+    406					     ; Damages:	 ax, bx, cx, es, di
+    407					     ;========================================
+    408	0223				     DrawFrame proc
+    409	0223  BB B800				     mov bx, videomem
+    410	0226  8E C3				     mov es, bx			     ; Jump to videosegment
+    411
+    412	0228  E8 FFDE				     call ClearFrame
+    413	022B  E8 0001				     call DrawBorders
+    414
+    415	022E  C3			     ret
+    416	022F				     endp
+    417
+    418
+    419
+    420					     ;========================================
+    421					     ; Requires: defined x1, x2, y1, y2
+    422					     ;
+    423					     ; Returns:	 ----
+    424					     ;
+    425					     ; Damages:	 ax, bx, cx, es, di
+    426					     ;========================================
+    427	022F				     DrawBorders proc
+    428	022F  B4 18				     mov ah, 18h     ; Grey on Black background
+    429
+    430	0231  BF 0654				     mov di, lu_coord
+    431	0234  B0 C9				     mov al, lu_corn
+    432	0236  AB				     stosw
+    433	0237  E8 002A				     call DrawHorizontalBorder
+    434
+    435	023A  BF 0654				     mov di, lu_coord
+    436	023D  81 C7 00A0			     add di, 80*2
+    437	0241  E8 0028				     call DrawVerticalBorder
+    438
+    439	0244  BF 0C94				     mov di, ld_coord
+    440	0247  B0 C8				     mov al, ld_corn
+    441	0249  AB				     stosw
+    442	024A  E8 0017				     call DrawHorizontalBorder
+    443
+    444	024D  BF 06CC				     mov di, ru_coord
+    445	0250  81 C7 00A0			     add di, 80*2
+    446	0254  E8 0015				     call DrawVerticalBorder
+    447
+    448	0257  BF 06CC				     mov di, ru_coord
+    449	025A  B0 BB				     mov al, ru_corn
+    450	025C  AB				     stosw
+    451
+    452	025D  BF 0D0C				     mov di, rd_coord
+    453	0260  B0 BC				     mov al, rd_corn
+    454	0262  AB				     stosw
+    455
+    456	0263  C3			     ret
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 9
+frame.asm
+
+
+
+    457	0264				     endp
+    458
+    459
+    460
+    461					     ;========================================
+    462					     ; Requires: defined x1, x2, y1, y2
+    463					     ;
+    464					     ; Returns:	 ----
+    465					     ;
+    466					     ; Damages:	 al, cx, di
+    467					     ;========================================
+    468	0264				     DrawHorizontalBorder proc
+    469	0264  B9 003B				     mov cx, x2	- x1 - 1
+    470	0267  B0 CD				     mov al, horiz_side
+    471
+    472	0269  F3> AB				     rep stosw
+    473
+    474	026B  C3			     ret
+    475	026C				     endp
+    476
+    477
+    478
+    479					     ;========================================
+    480					     ; Requires: defined x1, x2, y1, y2
+    481					     ;
+    482					     ; Returns:	 ----
+    483					     ;
+    484					     ; Damages:	 al, cx, di
+    485					     ;========================================
+    486	026C				     DrawVerticalBorder	proc
+    487	026C  B9 0009				     mov cx, y2	- y1 - 1
+    488	026F  B0 BA				     mov al, vert_side
+    489
+    490	0271				     v_symb:
+    491	0271  26: 89 05				     mov es:[di], ax
+    492	0274  81 C7 00A0			     add di, 80*2
+    493	0278  E2 F7				     loop v_symb
+    494
+    495	027A  C3			     ret
+    496	027B				     endp
+    497
+    498
+    499
+    500
+    501
+    502
+    503	027B  14*(??)		     Input:  db	MAX_INP_LEN dup	(?)
+    504
+    505	028F  13*(??)		     Number: db	MAX_NUM_LEN dup	(?)
+    506
+    507	02A2  62 69 6E 3A 20	     Base_bin: db 'bin:	'
+    508
+    509	02A7  6F 63 74 3A 20	     Base_oct: db 'oct:	'
+    510
+    511	02AC  68 65 78 3A 20	     Base_hex: db 'hex:	'
+    512
+    513				     end Start
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 10
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/06/21"
+??FILENAME			  Text	 "frame	  "
+??TIME				  Text	 "13:10:33"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 FRAME
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+BASE_BIN			  Near	 DGROUP:02A2
+BASE_HEX			  Near	 DGROUP:02AC
+BASE_NAME_SIZE			  Number 0005
+BASE_OCT			  Near	 DGROUP:02A7
+BIN				  Near	 DGROUP:01B8
+CLEAR				  Near	 DGROUP:0213
+CLEARFRAME			  Near	 DGROUP:0209
+CLEAR_LINE			  Near	 DGROUP:0218
+CONVERT				  Near	 DGROUP:0192
+COUNT_NUMBER			  Near	 DGROUP:0153
+DIGIT_PROC			  Near	 DGROUP:0199
+DRAWBORDERS			  Near	 DGROUP:022F
+DRAWFRAME			  Near	 DGROUP:0223
+DRAWHORIZONTALBORDER		  Near	 DGROUP:0264
+DRAWVERTICALBORDER		  Near	 DGROUP:026C
+EASY				  Near	 DGROUP:01FC
+GETSTRING			  Near	 DGROUP:0119
+HARD				  Near	 DGROUP:0202
+HEX				  Near	 DGROUP:01C4
+HORIZ_SIDE			  Number 00CD
+INPUT				  Near	 DGROUP:027B
+LD_COORD			  Number 0C94
+LD_CORN				  Number 00C8
+LU_COORD			  Number 0654
+LU_CORN				  Number 00C9
+MARK				  Near	 DGROUP:0127
+MAX_INP_LEN			  Number 0014
+MAX_NUM_LEN			  Number 0013
+NEWLINES			  Near	 DGROUP:0127
+NUMBER				  Near	 DGROUP:028F
+NUMBERPROCESSING		  Near	 DGROUP:016C
+NUMINCHAR			  Near	 DGROUP:01F4
+OCT				  Near	 DGROUP:01BE
+OUT_SYMB_BACK			  Near	 DGROUP:01ED
+OUT_SYMB_FORW			  Near	 DGROUP:01E5
+PUSHTOVIDEO			  Near	 DGROUP:01DB
+QUIT				  Near	 DGROUP:0169
+RD_COORD			  Number 0D0C
+Turbo Assembler	 Version 4.1	    03/06/21 13:10:33	    Page 11
+Symbol Table
+
+
+
+RD_CORN				  Number 00BC
+READNUMBER			  Near	 DGROUP:0138
+RETURN				  Near	 DGROUP:0208
+RU_COORD			  Number 06CC
+RU_CORN				  Number 00BB
+SHADOW_30			  Number 00B0
+SHADOW_50			  Number 00B1
+SHADOW_70			  Number 00B2
+SPACE				  Number 0020
+START				  Near	 DGROUP:0100
+STOP_PUSHING			  Near	 DGROUP:01F3
+STORE_NUMS			  Near	 DGROUP:0141
+STRLEN				  Near	 DGROUP:0134
+TERMINATE			  Near	 DGROUP:0114
+VERT_SIDE			  Number 00BA
+VIDEOMEM			  Number B800
+V_SYMB				  Near	 DGROUP:0271
+WRITESYSTEM			  Near	 DGROUP:01A9
+WRITE_BASE			  Near	 DGROUP:01CA
+X1				  Number 000A
+X2				  Number 0046
+Y1				  Number 000A
+Y2				  Number 0014
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  02B1 Word	  Public  CODE
+

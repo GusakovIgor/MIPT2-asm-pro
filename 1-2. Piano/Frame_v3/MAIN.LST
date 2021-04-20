@@ -1,0 +1,657 @@
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 1
+main.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3
+      4				     org 100h
+      5
+      6
+      7				     ; Constants ===========================
+      8
+      9	      =0005		     BASE_NAME_LEN equ 5
+     10	      =0014		     MAX_INP_LEN equ 20
+     11	      =0014		     MAX_OUT_LEN equ 20
+     12	      =0013		     MAX_NUM_LEN equ 19	     ; Maximum is needed for binary number. 16 is for number, 1	is for length
+     13							     ;							      1	for 'b'	or  +
+     14				     'o' or 'h'
+     15							     ;							      1	for '$'
+     16
+     17	      =000A		     x1	= 10
+     18	      =0046		     x2	= 70
+     19
+     20	      =000A		     y1	= 10
+     21	      =0014		     y2	= 20
+     22
+     23	      =0654		     lu_coord =	(80 * y1 + x1) * 2
+     24	      =0C94		     ld_coord =	(80 * y2 + x1) * 2
+     25	      =06CC		     ru_coord =	(80 * y1 + x2) * 2
+     26	      =0D0C		     rd_coord =	(80 * y2 + x2) * 2
+     27
+     28
+     29	      =B800		     videomem =	0b800h
+     30
+     31	      =00BA		     vert_side	= 0bah	     ; vertical	side
+     32	      =00CD		     horiz_side	= 0cdh	     ; horizontal side
+     33
+     34	      =00C9		     lu_corn = 0c9h  ; left-up
+     35	      =00C8		     ld_corn = 0c8h  ; left-down
+     36	      =00BB		     ru_corn = 0bbh  ; right-up
+     37	      =00BC		     rd_corn = 0bch  ; right-down
+     38
+     39	      =0020		     space = 20h     ; free space
+     40
+     41	      =00B0		     shadow_30 = 0b0h	     ; 30 %
+     42	      =00B1		     shadow_50 = 0b1h	     ; 50 %
+     43	      =00B2		     shadow_70 = 0b2h	     ; 70 %
+     44
+     45				     ;======================================
+     46
+     47
+     48				     ; Global Funcs ========================
+     49
+     50				     ;extrn DrawFrame	     :proc
+     51				     ;extrn GetString	     :proc
+     52				     ;extrn ReadNumber	     :proc
+     53				     ;extrn NumberProcessing :proc
+     54
+     55				     ;======================================
+     56
+     57	0100  E8 0036		     Start:  call DrawFrame	     ; Drawing a frame
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 2
+main.asm
+
+
+
+     58	0103  E8 00A7			     call GetString
+     59	0106  E8 00B2			     call ReadNumber	     ; input in	ax
+     60
+     61	0109  50			     push ax
+     62	010A  BB 000A			     mov bx, 10			     ; Base of system number to	convert
+     63	010D  BF 06F6			     mov di, lu_coord +	160 + 2	     ; Offest of message in VideoMemory
+     64	0110  E8 00D1			     call NumberProcessing
+     65	0113  58			     pop ax
+     66
+     67	0114  50			     push ax
+     68	0115  BB 0002			     mov bx, 2			     ; Base of system number to	convert
+     69	0118  BF 0906			     mov di, (lu_coord + ld_coord + ru_coord + rd_coord) / 4 - 160 - 10	     ; Offest of    +
+     70				     message in	VideoMemory
+     71	011B  E8 00C6			     call NumberProcessing
+     72	011E  58			     pop ax
+     73
+     74	011F  50			     push ax
+     75	0120  BB 0008			     mov bx, 8			     ; Base of system number to	convert
+     76	0123  BF 09A6			     mov di, (lu_coord + ld_coord + ru_coord + rd_coord) / 4 - 10	     ; Offest of    +
+     77				     message in	VideoMemory
+     78	0126  E8 00BB			     call NumberProcessing
+     79	0129  58			     pop ax
+     80
+     81	012A  50			     push ax
+     82	012B  BB 0010			     mov bx, 16			     ; Base of system number to	convert
+     83	012E  BF 0A46			     mov di, (lu_coord + ld_coord + ru_coord + rd_coord) / 4 + 160 - 10	     ; Offest of    +
+     84				     message in	VideoMemory
+     85	0131  E8 00B0			     call NumberProcessing
+     86
+     87	0134  B8 4C00			     mov ax, 4c00h
+     88	0137  CD 21			     int 21h
+     89
+     90					     include mkframe.asm
+1    91					     ;========================================
+1    92					     ; Requires: defined x1, x2, y1, y2
+1    93					     ;
+1    94					     ; Returns:	 ----
+1    95					     ;
+1    96					     ; Damages:	 ax, bx, cx, es, di
+1    97					     ;========================================
+1    98					     global DrawFrame
+*Warning* mkframe.asm(8) Global	type doesn't match symbol type:	DRAWFRAME
+1    99	0139				     DrawFrame proc
+1   100
+1   101	0139  06				     push es
+1   102	013A  BB B800				     mov bx, videomem
+1   103	013D  8E C3				     mov es, bx			     ; Jump to videosegment
+1   104
+1   105	013F  E8 0005				     call ClearFrame
+1   106	0142  E8 001C				     call DrawBorders
+1   107	0145  07				     pop es
+1   108
+1   109	0146  C3			     ret
+1   110	0147				     endp
+1   111
+1   112
+1   113
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 3
+main.asm
+
+
+
+1   114					     ;========================================
+1   115					     ; Requires: defined x1, x2, y1, y2
+1   116					     ;
+1   117					     ; Returns:	 ----
+1   118					     ;
+1   119					     ; Damages:	 ax, bx, cx, es, di
+1   120					     ;========================================
+1   121					     global ClearFrame
+*Warning* mkframe.asm(31) Global type doesn't match symbol type: CLEARFRAME
+1   122	0147				     ClearFrame	proc
+1   123	0147  BF 0654				     mov di, lu_coord	     ; Coordinates of start
+1   124
+1   125	014A  B4 00				     mov ah, 00h	     ; Black background
+1   126	014C  B0 20				     mov al, 20h	     ; Space symbol
+1   127
+1   128	014E  B9 000A				     mov cx, y2	- y1
+1   129
+1   130	0151					     clear:
+1   131	0151  8B D9					     mov bx, cx
+1   132	0153  B9 003C					     mov cx, x2	- x1
+1   133
+1   134	0156						     clear_line:
+1   135	0156  AB						     stosw	     ; mov es:[di], ax / inc di
+1   136	0157  E2 FD						     loop clear_line
+1   137
+1   138	0159  83 C7 28					     add di, (80 - (x2 - x1)) *	2
+1   139
+1   140	015C  8B CB					     mov cx, bx
+1   141	015E  E2 F1					     loop clear
+1   142
+1   143	0160  C3			     ret
+1   144	0161				     endp
+1   145
+1   146
+1   147
+1   148					     ;========================================
+1   149					     ; Requires: defined x1, x2, y1, y2
+1   150					     ;
+1   151					     ; Returns:	 ----
+1   152					     ;
+1   153					     ; Damages:	 ax, bx, cx, es, di
+1   154					     ;========================================
+1   155					     global DrawBorders
+*Warning* mkframe.asm(65) Global type doesn't match symbol type: DRAWBORDERS
+1   156	0161				     DrawBorders proc
+1   157	0161  B4 08				     mov ah, 08h     ; Grey on Black background
+1   158
+1   159	0163  BF 0654				     mov di, lu_coord
+1   160	0166  B0 C9				     mov al, lu_corn
+1   161	0168  AB				     stosw
+1   162	0169  E8 002A				     call DrawHorizontalBorder
+1   163
+1   164	016C  BF 0654				     mov di, lu_coord
+1   165	016F  81 C7 00A0			     add di, 80*2
+1   166	0173  E8 0028				     call DrawVerticalBorder
+1   167
+1   168	0176  BF 0C94				     mov di, ld_coord
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 4
+main.asm
+
+
+
+1   169	0179  B0 C8				     mov al, ld_corn
+1   170	017B  AB				     stosw
+1   171	017C  E8 0017				     call DrawHorizontalBorder
+1   172
+1   173	017F  BF 06CC				     mov di, ru_coord
+1   174	0182  81 C7 00A0			     add di, 80*2
+1   175	0186  E8 0015				     call DrawVerticalBorder
+1   176
+1   177	0189  BF 06CC				     mov di, ru_coord
+1   178	018C  B0 BB				     mov al, ru_corn
+1   179	018E  AB				     stosw
+1   180
+1   181	018F  BF 0D0C				     mov di, rd_coord
+1   182	0192  B0 BC				     mov al, rd_corn
+1   183	0194  AB				     stosw
+1   184
+1   185	0195  C3			     ret
+1   186	0196				     endp
+1   187
+1   188
+1   189
+1   190					     ;========================================
+1   191					     ; Requires: defined x1, x2, y1, y2
+1   192					     ;
+1   193					     ; Returns:	 ----
+1   194					     ;
+1   195					     ; Damages:	 al, cx, di
+1   196					     ;========================================
+1   197					     global DrawHorizontalBorder
+*Warning* mkframe.asm(107) Global type doesn't match symbol type: DRAWHORIZONTALBORDER
+1   198	0196				     DrawHorizontalBorder proc
+1   199	0196  B9 003B				     mov cx, x2	- x1 - 1
+1   200	0199  B0 CD				     mov al, horiz_side
+1   201
+1   202	019B  F3> AB				     rep stosw
+1   203
+1   204	019D  C3			     ret
+1   205	019E				     endp
+1   206
+1   207
+1   208
+1   209					     ;========================================
+1   210					     ; Requires: defined x1, x2, y1, y2
+1   211					     ;
+1   212					     ; Returns:	 ----
+1   213					     ;
+1   214					     ; Damages:	 al, cx, di
+1   215					     ;========================================
+1   216					     global DrawVerticalBorder
+*Warning* mkframe.asm(126) Global type doesn't match symbol type: DRAWVERTICALBORDER
+1   217	019E				     DrawVerticalBorder	proc
+1   218	019E  B9 0009				     mov cx, y2	- y1 - 1
+1   219	01A1  B0 BA				     mov al, vert_side
+1   220
+1   221	01A3				     v_symb:
+1   222	01A3  26: 89 05				     mov es:[di], ax
+1   223	01A6  81 C7 00A0			     add di, 80*2
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 5
+main.asm
+
+
+
+1   224	01AA  E2 F7				     loop v_symb
+1   225
+1   226	01AC  C3			     ret
+1   227	01AD				     endp
+    228					     include numproc.asm
+1   229					     ;==================================================================
+1   230					     ; Requires: Input buffer with constant size MAX_INP_LEN (up to 254)
+1   231					     ;
+1   232					     ; Returns:	 Char buffer with beginnig at si + 1, with it's
+1   233					     ;		 length	in [si]
+1   234					     ;
+1   235					     ; Damages:	 ah, si, dx
+1   236					     ;==================================================================
+1   237					     global GetString
+*Warning* numproc.asm(9) Global	type doesn't match symbol type:	GETSTRING
+1   238	01AD				     GetString proc
+1   239
+1   240	01AD  B4 0A				     mov ah, 0ah
+1   241	01AF  BA 0271r				     mov dx, offset Input
+1   242	01B2  8B F2				     mov si, dx
+1   243	01B4  C6 04 14				     mov byte ptr [si],	MAX_INP_LEN
+1   244
+1   245	01B7  CD 21				     int 21h
+1   246	01B9  46				     inc si
+1   247	01BA  C3			     ret
+1   248	01BB				     endp
+1   249
+1   250
+1   251
+1   252					     ;==================================================================
+1   253					     ; Requires: pointer on buffer in si (where	si + 1 - beginning of the string
+1   254					     ;					   and [si]    - length	of string)
+1   255					     ;
+1   256					     ; Returns:	 number	from the buffer	in ax
+1   257					     ;
+1   258					     ; Damages:	 ax, bx, cx, dx
+1   259					     ;==================================================================
+1   260					     global ReadNumber
+*Warning* numproc.asm(32) Global type doesn't match symbol type: READNUMBER
+1   261	01BB				     ReadNumber	proc
+1   262
+1   263	01BB  33 C0				     xor ax, ax
+1   264	01BD  33 C9				     xor cx, cx
+1   265	01BF  33 FF				     xor di, di
+1   266
+1   267	01C1  8A 0C				     mov cl, [si]
+1   268	01C3  8B D1				     mov dx, cx	     ; Сохраняем количество цифр
+1   269	01C5  46				     inc si	     ; Переходим к буфферу
+1   270	01C6  FC				     cld
+1   271
+1   272	01C7  80 2C 30			 store_nums: sub byte ptr [si],	'0'
+1   273	01CA  AC				     lodsb
+1   274	01CB  50				     push ax	     ; Пушим каждую цифру в стек
+1   275	01CC  E2 F9				     loop store_nums
+1   276
+1   277	01CE  8B CA				     mov cx, dx	     ; Возвращаем в cx кол-во цифр
+1   278	01D0  BB 0001				     mov bx, 1	     ; Множитель для первой цифры
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 6
+main.asm
+
+
+
+1   279
+1   280	01D3  58		       count_number: pop ax	     ; Считываем новую цифру из	стека
+1   281
+1   282	01D4  F7 E3				     mul bx	     ; Умножаем	цифру на степень 10
+1   283	01D6  03 F8				     add di, ax	     ; Прибавляем произведение к сохранённой сумме (будущему числу)
+1   284
+1   285	01D8  B8 000A				     mov ax, 10	     ; Умножаем	bx на 10
+1   286	01DB  F7 E3				     mul bx
+1   287	01DD  8B D8				     mov bx, ax
+1   288
+1   289	01DF  E2 F2				     loop count_number
+1   290
+1   291
+1   292	01E1  8B C7			       quit: mov ax, di
+1   293
+1   294	01E3  C3			     ret
+1   295	01E4				     endp
+1   296
+    297					     include numout.asm
+1   298					     ;==================================================================
+1   299					     ; Requires: decimal number	(up to 65535) to convert in three number systems
+1   300					     ;		 and print on screen in	ax
+1   301					     ;
+1   302					     ; Returns:	 pointer in si on the length of	number and beginning of	number in si + 1
+1   303					     ;
+1   304					     ; Notes:
+1   305					     ;
+1   306					     ; Damages:	 ----
+1   307					     ;==================================================================
+1   308					     global NumberProcessing
+*Warning* numout.asm(11) Global	type doesn't match symbol type:	NUMBERPROCESSING
+1   309	01E4				     NumberProcessing proc
+1   310
+1   311	01E4  57				     push di		     ; There is	offset in di
+1   312	01E5  E8 003A				     call WriteSystem
+1   313	01E8  E8 0007				     call Convert	     ; Adding to output	number in another number system
+1   314	01EB  5F				     pop di
+1   315
+1   316	01EC  B4 1A				     mov ah, 1ah	     ; Colour of text to print
+1   317	01EE  E8 006E				     call PushToVideo	     ; Pushing string in VideoMemory
+1   318	01F1  C3			     ret
+1   319	01F2				     endp
+1   320
+1   321
+1   322
+1   323					     ;====================================================================
+1   324					     ; Requires: decimal number	(up to 65535) to convert in ax,	pointer	on
+1   325					     ;		 output	message	in si and base of new number system in bx
+1   326					     ;
+1   327					     ;
+1   328					     ; Returns:	 pointer in si on output message, that contains
+1   329					     ;
+1   330					     ; Notes:
+1   331					     ;
+1   332					     ; Damages:	 ax, bx, cx, dx, si
+1   333					     ;====================================================================
+1   334					     global Convert
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 7
+main.asm
+
+
+
+*Warning* numout.asm(37) Global	type doesn't match symbol type:	CONVERT
+1   335	01F2				     Convert proc
+1   336
+1   337	01F2  33 C9				     xor cx, cx
+1   338	01F4  33 D2				     xor dx, dx	     ; For division error, when	(dx, ax) / bx is too big for ax
+1   339
+1   340	01F6				 digit_proc:
+1   341	01F6  F7 F3				     div bx
+1   342
+1   343	01F8  E8 0012				     call NumInChar
+1   344	01FB  52				     push dx
+1   345	01FC  33 D2				     xor dx, dx
+1   346
+1   347	01FE  41				     inc cx
+1   348	01FF  0B C0				     or	ax, ax
+1   349	0201  75 F3				     jnz digit_proc
+1   350
+1   351	0203  00 4C FF				     add [si - 1], cl
+1   352
+1   353	0206				 digit_push:
+1   354	0206  5A				     pop dx
+1   355	0207  88 15				     mov [di], dl
+1   356	0209  47				     inc di
+1   357	020A  E2 FA				     loop digit_push
+1   358
+1   359	020C  C3			     ret
+1   360	020D				     endp
+1   361
+1   362
+1   363					     ;==================================================================
+1   364					     ; Requires: decimal number	(up to 15) to convert in dx
+1   365					     ;
+1   366					     ; Returns:	 symbol	(it's code) in dx, that	displays that number
+1   367					     ;
+1   368					     ; Notes:	 That is more universal, then using "add dx, '0'" in
+1   369					     ;		 Bin and Octal converting, but it's longer by 5	operations
+1   370					     ;
+1   371					     ; Damages:	 ----
+1   372					     ;==================================================================
+1   373					     global NumInChar
+*Warning* numout.asm(76) Global	type doesn't match symbol type:	NUMINCHAR
+1   374	020D				     NumInChar proc
+1   375	020D  83 FA 0A				     cmp dx, 10
+1   376	0210  72 03				     jb	 easy
+1   377	0212  EB 07 90				     jmp hard
+1   378
+1   379	0215  83 C2 30			     easy:   add dx, '0'
+1   380	0218  EB 07 90				     jmp return
+1   381
+1   382	021B  83 EA 0A			     hard:   sub dx, 10
+1   383	021E  83 C2 41				     add dx, 'A'
+1   384
+1   385	0221				     return:
+1   386
+1   387	0221  C3			     ret
+1   388	0222				     endp
+1   389
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 8
+main.asm
+
+
+
+1   390
+1   391
+1   392					     ;==================================================================
+1   393					     ; Requires: decimal number, base of number	system in bx (2, 8 or 16)
+1   394					     ;
+1   395					     ; Returns:	 ----
+1   396					     ;
+1   397					     ; Notes:	 Writes	number system name in bytes with adress	in si
+1   398					     ;
+1   399					     ; Damages:	 si, di
+1   400					     ;==================================================================
+1   401					     global WriteSystem
+*Warning* numout.asm(104) Global type doesn't match symbol type: WRITESYSTEM
+1   402	0222				     WriteSystem proc
+1   403
+1   404	0222  BF 0285r				     mov di, offset Output
+1   405	0225  C6 05 05				     mov byte ptr [di],	BASE_NAME_LEN
+1   406	0228  47				     inc di
+1   407
+1   408	0229  83 FB 0A				     cmp bx, 10
+1   409	022C  74 0F				     je	dec
+1   410
+1   411	022E  83 FB 02				     cmp bx, 2
+1   412	0231  74 10				     je	bin
+1   413	0233  83 FB 08				     cmp bx, 8
+1   414	0236  74 11				     je	oct
+1   415	0238  83 FB 10				     cmp bx, 16
+1   416	023B  74 12				     je	hex
+1   417
+1   418	023D  BE 0299r				dec: mov si, offset Base_dec
+*Warning* numout.asm(121) Reserved word	used as	symbol:	DEC
+1   419	0240  EB 13 90				     jmp write_base
+1   420
+1   421	0243  BE 029Er				bin: mov si, offset Base_bin
+1   422	0246  EB 0D 90				     jmp write_base
+1   423
+1   424	0249  BE 02A3r				oct: mov si, offset Base_oct
+1   425	024C  EB 07 90				     jmp write_base
+1   426
+1   427	024F  BE 02A8r				hex: mov si, offset Base_hex
+1   428	0252  EB 01 90				     jmp write_base
+1   429
+1   430
+1   431	0255  8A 4D FF			 write_base: mov cl, byte ptr [di - 1]
+1   432	0258  32 ED				     xor ch, ch
+1   433
+1   434	025A  57				     push di
+1   435	025B  F3> A4				     rep movsb
+1   436	025D  5E				     pop si
+1   437
+1   438	025E  C3			     ret
+1   439	025F				     endp
+1   440
+1   441
+1   442
+1   443					     ;==================================================================
+1   444					     ; Requires: buffer	in si, buffer length in	cx, colour in ah
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 9
+main.asm
+
+
+
+1   445					     ;
+1   446					     ; Returns:	 string	in VideoMemory
+1   447					     ;
+1   448					     ; Notes:
+1   449					     ;
+1   450					     ; Damages:	 ax, cx, es, si, di
+1   451					     ;==================================================================
+1   452					     global PushToVideo
+*Warning* numout.asm(155) Global type doesn't match symbol type: PUSHTOVIDEO
+1   453	025F				     PushToVideo proc
+1   454
+1   455	025F  06				     push es
+1   456
+1   457	0260  BA B800				     mov dx, videomem
+1   458	0263  8E C2				     mov es, dx
+1   459
+1   460	0265  8A 4C FF				     mov cl, [si - 1]
+1   461	0268  32 ED				     xor ch, ch
+1   462	026A  FC				     cld
+1   463
+1   464	026B  AC		      out_symb_forw: lodsb
+1   465	026C  AB				     stosw
+1   466	026D  E2 FC				     loop out_symb_forw
+1   467
+1   468	026F  07				     pop es
+1   469	0270  C3			     ret
+1   470	0271				     endp
+    471
+    472
+    473
+    474	0271  14*(??)		     Input:  db	MAX_INP_LEN dup	(?)
+    475
+    476	0285  14*(??)		     Output: db	MAX_OUT_LEN dup	(?)
+    477
+    478	0299  69 6E 70 3A 20	     Base_dec: db 'inp:	'
+    479
+    480	029E  62 69 6E 3A 20	     Base_bin: db 'bin:	'
+    481
+    482	02A3  6F 63 74 3A 20	     Base_oct: db 'oct:	'
+    483
+    484	02A8  68 65 78 3A 20	     Base_hex: db 'hex:	'
+    485
+    486				     end     Start
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 10
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/09/21"
+??FILENAME			  Text	 "main	  "
+??TIME				  Text	 "16:16:19"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 MAIN
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+BASE_BIN			  Near	 DGROUP:029E
+BASE_DEC			  Near	 DGROUP:0299
+BASE_HEX			  Near	 DGROUP:02A8
+BASE_NAME_LEN			  Number 0005
+BASE_OCT			  Near	 DGROUP:02A3
+BIN				  Near	 DGROUP:0243
+CLEAR				  Near	 DGROUP:0151
+CLEARFRAME			  Near	 DGROUP:0147
+CLEAR_LINE			  Near	 DGROUP:0156
+CONVERT				  Near	 DGROUP:01F2
+COUNT_NUMBER			  Near	 DGROUP:01D3
+DEC				  Near	 DGROUP:023D
+DIGIT_PROC			  Near	 DGROUP:01F6
+DIGIT_PUSH			  Near	 DGROUP:0206
+DRAWBORDERS			  Near	 DGROUP:0161
+DRAWFRAME			  Near	 DGROUP:0139
+DRAWHORIZONTALBORDER		  Near	 DGROUP:0196
+DRAWVERTICALBORDER		  Near	 DGROUP:019E
+EASY				  Near	 DGROUP:0215
+GETSTRING			  Near	 DGROUP:01AD
+HARD				  Near	 DGROUP:021B
+HEX				  Near	 DGROUP:024F
+HORIZ_SIDE			  Number 00CD
+INPUT				  Near	 DGROUP:0271
+LD_COORD			  Number 0C94
+LD_CORN				  Number 00C8
+LU_COORD			  Number 0654
+LU_CORN				  Number 00C9
+MAX_INP_LEN			  Number 0014
+MAX_NUM_LEN			  Number 0013
+MAX_OUT_LEN			  Number 0014
+NUMBERPROCESSING		  Near	 DGROUP:01E4
+NUMINCHAR			  Near	 DGROUP:020D
+OCT				  Near	 DGROUP:0249
+OUTPUT				  Near	 DGROUP:0285
+OUT_SYMB_FORW			  Near	 DGROUP:026B
+PUSHTOVIDEO			  Near	 DGROUP:025F
+QUIT				  Near	 DGROUP:01E1
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 11
+Symbol Table
+
+
+
+RD_COORD			  Number 0D0C
+RD_CORN				  Number 00BC
+READNUMBER			  Near	 DGROUP:01BB
+RETURN				  Near	 DGROUP:0221
+RU_COORD			  Number 06CC
+RU_CORN				  Number 00BB
+SHADOW_30			  Number 00B0
+SHADOW_50			  Number 00B1
+SHADOW_70			  Number 00B2
+SPACE				  Number 0020
+START				  Near	 DGROUP:0100
+STORE_NUMS			  Near	 DGROUP:01C7
+VERT_SIDE			  Number 00BA
+VIDEOMEM			  Number B800
+V_SYMB				  Near	 DGROUP:01A3
+WRITESYSTEM			  Near	 DGROUP:0222
+WRITE_BASE			  Near	 DGROUP:0255
+X1				  Number 000A
+X2				  Number 0046
+Y1				  Number 000A
+Y2				  Number 0014
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  02AD Word	  Public  CODE
+Turbo Assembler	 Version 4.1	    03/09/21 16:16:19	    Page 12
+Error Summary
+
+
+
+*Warning* mkframe.asm(8) Global	type doesn't match symbol type:	DRAWFRAME
+*Warning* mkframe.asm(31) Global type doesn't match symbol type: CLEARFRAME
+*Warning* mkframe.asm(65) Global type doesn't match symbol type: DRAWBORDERS
+*Warning* mkframe.asm(107) Global type doesn't match symbol type: DRAWHORIZONTALBORDER
+*Warning* mkframe.asm(126) Global type doesn't match symbol type: DRAWVERTICALBORDER
+*Warning* numproc.asm(9) Global	type doesn't match symbol type:	GETSTRING
+*Warning* numproc.asm(32) Global type doesn't match symbol type: READNUMBER
+*Warning* numout.asm(11) Global	type doesn't match symbol type:	NUMBERPROCESSING
+*Warning* numout.asm(37) Global	type doesn't match symbol type:	CONVERT
+*Warning* numout.asm(76) Global	type doesn't match symbol type:	NUMINCHAR
+*Warning* numout.asm(104) Global type doesn't match symbol type: WRITESYSTEM
+*Warning* numout.asm(121) Reserved word	used as	symbol:	DEC
+*Warning* numout.asm(155) Global type doesn't match symbol type: PUSHTOVIDEO
+

@@ -63,7 +63,7 @@ Before we start, we've got a few files here. What do they mean?
 ## Refatoring:
 
 - ~~Process call of `MPrintf` in `_MPrintf` (there is return adress after pushed registers)~~
-- `~~rdx → rbp~~`
+- ~~rdx → rbp~~
 - "~~Make `.NumInChar` some kind of jump table (array with possible symbols "0123...9ab...f")~~
 - ~~Make everything in functions.~~
 - ~~Convertation for 2, 8, 16 with binary operations~~

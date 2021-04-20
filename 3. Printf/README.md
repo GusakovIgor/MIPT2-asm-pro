@@ -1,6 +1,6 @@
 ## This folder contains MPrintf - my version of printf from stdio.h
 
-This description is copy of my notion [paper](https://www.notion.so/Printf-e87e012efd874328a32bbd6919af804c)
+This description is copy of my notion [paper](https://www.notion.so/Printf-e87e012efd874328a32bbd6919af804c). It's more colourful and clear than that README. I encourage you to read it there.
 
 Before we start, we've got a few files here. What do they mean?
 

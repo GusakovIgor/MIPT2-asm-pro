@@ -554,12 +554,12 @@ FormatTest:		db "Your number is %d", 0x00
 
 
 
-JumpTable					dq	BinArgOut		; for %b
-							dq	CharArgOut		; for %c
-							dq	DecArgOut		; for %d
+JumpTable			dq	BinArgOut		; for %b
+				dq	CharArgOut		; for %c
+				dq	DecArgOut		; for %d
 	times	'o' - 'd' - 1	dq 	BadFormat 		; for bad %(e-n)
-							dq	OctArgOut		; for %o
+				dq	OctArgOut		; for %o
 	times	's' - 'o' - 1	dq 	BadFormat 		; for bad %(p-r)
-							dq	StringArgOut	; for %s
+				dq	StringArgOut		; for %s
 	times	'x' - 's' - 1	dq 	BadFormat 		; for bad %(t-w)
-							dq	HexArgOut		; for %xsection .text
+				dq	HexArgOut		; for %xsection .text

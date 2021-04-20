@@ -1,4 +1,4 @@
-### This folder contains MPrintf - my version of printf from stdio.h
+## This folder contains MPrintf - my version of printf from stdio.h
 
 Before we start, we've got a few files here. What do they mean?
 

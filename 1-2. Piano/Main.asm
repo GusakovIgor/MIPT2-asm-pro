@@ -116,7 +116,7 @@ MainFreq equ 1193100
 
 
 Start:	
-	call DrawFrame          ; Drawing a frame
+	call DrawFrame
 	call DrawKeys
 
 	xor bx, bx	; bx = 0
@@ -124,13 +124,13 @@ Start:
 	mov bx, 9*4	; Set offset to the part of segment which contains what to do with keyboard interrupt 
 
 	call ChangeIntFunc
-        call LoadProg
+    call LoadProg
 	
 	mov ax, 4c00h
 	int 21h
 
 	include resident.asm
-        include numout.asm
+    include numout.asm
 	include mksound.asm
 	include mkkeys.asm
 
@@ -141,7 +141,5 @@ Output:	db MAX_OUT_LEN dup (?)
 End_of_Prog:
 
 	include mkframe.asm
-
-	include numproc.asm
 
 end	Start

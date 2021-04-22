@@ -9,8 +9,8 @@
 	DrawFrame proc
 		
 		push es
-	    	mov bx, videomem
-	    	mov es, bx                      ; Jump to videosegment 
+	    mov bx, videomem
+	    mov es, bx			; Jump to videosegment 
 		
 		call ClearFrame
 		call DrawBorders
@@ -21,7 +21,7 @@
 
 	
 
-        ;========================================
+    ;========================================
 	; Requires: defined x1, x2, y1, y2, corners coords 
 	;		    and frame symbols codes
 	;
@@ -29,11 +29,12 @@
 	;
 	; Damages:  ax, bx, cx, es, di
 	;========================================
-	ClearFrame proc                                               
+	ClearFrame proc 
+
 		mov di, lu_coord	; Coordinates of start
 
-		mov ah, 00h		; Black background
-		mov al, 20h		; Space symbol
+		mov ah, 00h			; Black background
+		mov al, 20h			; Space symbol
 
 		mov cx, y2 - y1
 
@@ -42,8 +43,8 @@
 			mov cx, x2 - x1
 
 			clear_line:
-		        	stosw     	; mov es:[di], ax / inc di
-				loop clear_line
+		        	stosw
+					loop clear_line
 
 			add di, (80 - (x2 - x1)) * 2
 
@@ -55,7 +56,7 @@
 
 
 
-        ;========================================
+	;========================================
 	; Requires: defined x1, x2, y1, y2, corners coords 
 	;		    and frame symbols codes                                       
 	;                                                                        
@@ -63,8 +64,9 @@
 	;
 	; Damages:  ax, cx, es, di
 	;========================================
-	DrawBorders proc         
-		mov ah, 09h	; Grey on Black background
+	DrawBorders proc
+
+		mov ah, 09h		; Grey on Black background
 
 		mov di, lu_coord
 		mov al, lu_corn
@@ -73,16 +75,16 @@
 
 		mov di, lu_coord
 		add di, 80*2
-	        call DrawVerticalBorder
+		call DrawVerticalBorder
 
 		mov di, ld_coord
 		mov al, ld_corn
 		stosw
-	        call DrawHorizontalBorder
+	    call DrawHorizontalBorder
 
 		mov di, ru_coord
 		add di, 80*2
-                call DrawVerticalBorder
+        call DrawVerticalBorder
 
 		mov di, ru_coord
 		mov al, ru_corn
@@ -106,6 +108,7 @@
 	; Damages:  al, cx, di
 	;========================================
 	DrawHorizontalBorder proc
+
 	   	mov cx, x2 - x1 - 1
 		mov al, horiz_side
 
@@ -116,7 +119,7 @@
 
 
 
-        ;========================================
+    ;========================================
 	; Requires: defined x1, x2, y1, y2, corners coords 
 	;		    and frame symbols codes                                       
 	;                                                                        
@@ -125,13 +128,14 @@
 	; Damages:  al, cx, di
 	;========================================
 	DrawVerticalBorder proc
+
 	   	mov cx, y2 - y1 - 1
 		mov al, vert_side
 
-	v_symb: 
-		mov es:[di], ax
-		add di, 80*2
-		loop v_symb
+		v_symb: 
+			mov es:[di], ax
+			add di, 80*2
+			loop v_symb
 
 	ret
 	endp	 

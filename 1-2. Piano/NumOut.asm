@@ -9,6 +9,7 @@
 	; Damages:  all
 	;==================================================================
 	ShowNumber proc
+
 		push bx cx dx si di ds es ax
 		mov ax, cs
 		mov ds, ax
@@ -16,30 +17,31 @@
 		pop ax
 
 		push ax
-		mov bx, 10			; Base of system number to convert
-        	mov di, lu_coord + 160 + 2	; Offest of message in VideoMemory
+		mov bx, 10					; Base of system number to convert
+        mov di, lu_coord + 160 + 2	; Offest of message in VideoMemory
 		call NumberProcessing
 		pop ax
 
 		push ax
 		mov bx, 2
-        	mov di, ru_coord + 80 * 2 - 22 * 2
+        mov di, ru_coord + 80 * 2 - 22 * 2
 		call NumberProcessing
 		pop ax
 
 		push ax
 		mov bx, 8
-        	mov di, ru_coord + 160 * 2 - 22 * 2
+        mov di, ru_coord + 160 * 2 - 22 * 2
 		call NumberProcessing
 		pop ax
 
 		push ax
 		mov bx, 16
-        	mov di, ru_coord  + 240 * 2 - 22 * 2
+        mov di, ru_coord  + 240 * 2 - 22 * 2
 		call NumberProcessing
 		pop ax
 
 		pop es ds di si dx cx bx
+
 	ret
 	endp
 
@@ -56,13 +58,14 @@
 	;==================================================================	
 	NumberProcessing proc
 
-		push di                 ; There is offset in di
+		push di             ; There is offset in di
 		call WriteSystem
-	        call Convert        	; Adding to output number in another number system
+	    call Convert        ; Adding to output number in another number system
 		pop di
 		
-		mov ah, 0Dh		; Colour of text to print
+		mov ah, 0Dh			; Colour of text to print
 		call PushToVideo	; Pushing string in VideoMemory
+
 	ret
 	endp
 
@@ -84,24 +87,24 @@
 		xor cx, cx
 		xor dx, dx	; For division error, when (dx, ax) / bx is too big for ax		                                                
 
-    digit_proc:	
-		div bx
-		
-		call NumInChar
-		push dx
-		xor dx, dx
+	    digit_proc:	
+			div bx
+			
+			call NumInChar
+			push dx
+			xor dx, dx
 
-		inc cx		
-		or ax, ax
-		jnz digit_proc
-		
-		add [si - 1], cl
+			inc cx		
+			or ax, ax
+			jnz digit_proc
+			
+			add [si - 1], cl
 
-    digit_push:	
-		pop dx
-		mov [di], dl
-                inc di
-		loop digit_push
+	    digit_push:	
+			pop dx
+			mov [di], dl
+	        inc di
+			loop digit_push
 		
    	ret
 	endp
@@ -118,17 +121,18 @@
 	; Damages:  ----
 	;==================================================================	
 	NumInChar proc
+
 		cmp dx, 10
 		jb  easy
 		jmp hard
 
-	easy:	add dx, '0'
-	        jmp return
+		easy:	add dx, '0'
+		        jmp return
 
-	hard:	sub dx, 10
-	        add dx, 'A'
+		hard:	sub dx, 10
+		        add dx, 'A'
 
-	return:
+		return:
 
 	ret
 	endp
@@ -160,21 +164,21 @@
 		cmp bx, 16
 		je hex
 
-	   dec:	mov si, offset Base_dec
-		jmp write_base
+		dec:	mov si, offset Base_dec
+				jmp write_base
 
-	   bin: mov si, offset Base_bin
-                jmp write_base
+		bin: 	mov si, offset Base_bin
+				jmp write_base
 
-	   oct:	mov si, offset Base_oct
-		jmp write_base
+	   	oct:	mov si, offset Base_oct
+				jmp write_base
 
-	   hex:	mov si, offset Base_hex
-		jmp write_base
+		hex:	mov si, offset Base_hex
+				jmp write_base
 
 
-    write_base: mov cl, byte ptr [di - 1]
-		xor ch, ch
+    	write_base: mov cl, byte ptr [di - 1]
+					xor ch, ch
 		
 		push di
 		rep movsb
@@ -207,20 +211,24 @@
 		sub dx, cx
 		cld
 
- out_symb_forw: lodsb
-		stosw
-		loop out_symb_forw
-		
-		mov cx, dx
-		mov ah, 00h
+	 	out_symb_forw: 
+	 		lodsb
+			stosw
+			loop out_symb_forw
+			
+			mov cx, dx
+			mov ah, 00h
 
-	clean:  lodsb
-		stosw
-		loop clean
+		clean:  
+			lodsb
+			stosw
+			loop clean
 
-		pop es
+			pop es
+
 	ret
 	endp
+
 
 Base_dec: db 'inp: '
 

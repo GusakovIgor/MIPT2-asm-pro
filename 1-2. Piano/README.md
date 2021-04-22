@@ -1,5 +1,3 @@
-Let me introduce Piano for DOS written in ASM:
-
 You can see more colourful and clear Readme in my [Notion](https://www.notion.so/Piano-Frame-Resident-f0ade7c7b0184e4b8ddb5d3b034da4ef)
 
 The structure of piano code is described below:

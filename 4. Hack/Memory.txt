@@ -1,0 +1,52 @@
+|  n ||  u ||  c ||  l ||  e ||  a ||  r ||    ||  e ||  x ||  e ||  l ||  l ||  e ||  n ||  c ||  e |
+| 6e || 75 || 63 || 6c || 65 || 61 || 72 || 20 || 65 || 78 || 65 || 6c || 6c || 65 || 6e || 63 || 65 |
+
+
+
+
+
+first db "nude"
+
+|  n ||  u ||  d ||  e |
+| 6e || 75 || 64 || 65 |
+
+
+second db "clear exel"
+
+|  c ||  l ||  e ||  a ||  r ||    ||  e ||  x ||  e ||  l |
+| 63 || 6c || 65 || 61 || 72 || 20 || 65 || 78 || 65 || 6c |
+
+
+third dd ; =
+
+|    ||    ||    ||    |
+
+
+|  n ||  u ||  d ||  e ||    ||    ||    ||    ||  c ||  l ||  e ||  a ||  r ||    ||  e ||  x ||  e ||  l |
+|    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    |
+
+
+   ^					  ^			   ^ 	      ^
+ first					second		 third		fourth
+
+
+
+
+
+
+ mov ax, [first]
+ mov [third], ax
+ mov rax, first
+ mov [third], word rax
+
+
+|  n ||  u ||  d ||  e ||    ||    ||  n ||  u ||  c ||  l ||  e ||  a ||  r ||    ||  e ||  x ||  e ||  l |
+|    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    ||    |
+
+
+   ^					  ^			   ^ 	      ^
+ first					second		 third		fourth
+
+
+
+mov rax, [rbx]

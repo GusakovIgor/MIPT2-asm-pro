@@ -258,7 +258,7 @@ int CalculatePoint (Application* App, double x, double y)
 
 		dot_colour = (N[i] < num_iters) ? GetColour (App->Surface->format, 255 - c, c % 2 * 64, c, 255) : GetColour (App->Surface->format, 0, 0, 0, 255);
 
-		// dot_colour = GetColour (App->Surface->format, 0, 0, 255, 255);
+		//dot_colour = GetColour (App->Surface->format, 0, 0, 255, 255);
 
 		RedrawPixel (App->Surface, x, y + i, dot_colour);
 	}
@@ -299,7 +299,7 @@ int CalculatePointNoSSE (Application* App, double x, double y)
 	char c = (char) I;
 
 	uint64_t colour = (N < num_iters) ? GetColour (App->Surface->format, 255 - c, c % 2 * 64, c, 255) : GetColour (App->Surface->format, 0, 0, 0, 255);
-	// colour = GetColour (App->Surface->format, 0, 0, 255, 255);
+	colour = GetColour (App->Surface->format, 0, 0, 255, 255);
 	RedrawPixel (App->Surface, x, y, colour);
 
 	return colour;

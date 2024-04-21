@@ -1,4 +1,4 @@
-# Drawing Mandlebrot set.
+# Drawing Mandelbrot set.
 
 My program draws a Mandelbrot set, using SDL library.
 

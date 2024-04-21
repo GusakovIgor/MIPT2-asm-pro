@@ -4,7 +4,7 @@ This description is copy of my notion [paper](https://www.notion.so/Printf-e87e0
 
 Before we start, we've got a few files here. What do they mean?
 
-- In MPrintf.s you can find realization of MPrintf function
+- In MPrintf.s you can find implementation of MPrintf function
 - Call_C_Printf.s contains calling standart printf from assempber programm
 - And there is a programm in C-Asm.cpp that parsing tests.txt file and outputs everything form there with MPrintf and with standart printf for comparision
 
@@ -28,9 +28,9 @@ Before we start, we've got a few files here. What do they mean?
 - It's more of them in real printf, but MPrintf understands only those 6
 - And if you need `'%'` symbol in your output, you should type `"%%"` on the place you need it in format string
 
-## Realization of MPrintf:
+## Implementation:
 
-- Everything is organized in such a way, that all arguments lia on the stack (first arg on the top).
+- Everything is organized in such a way, that all arguments lies on the stack (first arg on the top).
 - We will have pointer on the format string in `rsi`, pointer to allocated `Output` buffer in `rdi` and pointer on stack in `rbp`.
 - In `r8` we will count number of symbols in `Output`.
 - We will go by the format string and copy all symbols, which are not specifiers.
